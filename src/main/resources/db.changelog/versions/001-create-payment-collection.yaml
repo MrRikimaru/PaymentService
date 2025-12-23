@@ -1,0 +1,78 @@
+databaseChangeLog:
+  - changeSet:
+      id: 001-create-payments-collection
+      author: system
+      changes:
+        - mongodb:
+            command: |
+              db.createCollection("payments", {
+                validator: {
+                  $jsonSchema: {
+                    bsonType: "object",
+                    required: ["id", "order_id", "user_id", "status", "timestamp", "payment_amount"],
+                    properties: {
+                      id: {
+                        bsonType: "string",
+                        description: "must be a string and is required"
+                      },
+                      order_id: {
+                        bsonType: "long",
+                        description: "must be a long and is required"
+                      },
+                      user_id: {
+                        bsonType: "long",
+                        description: "must be a long and is required"
+                      },
+                      status: {
+                        bsonType: "string",
+                        description: "must be a string and is required"
+                      },
+                      timestamp: {
+                        bsonType: "date",
+                        description: "must be a date and is required"
+                      },
+                      payment_amount: {
+                        bsonType: "decimal",
+                        description: "must be a decimal and is required"
+                      }
+                    }
+                  }
+                }
+              })
+
+        - mongodb:
+            command: |
+              // Уникальный индекс на id
+              db.payments.createIndex({ "id": 1 }, { 
+                name: "idx_payments_id", 
+                unique: true 
+              })
+
+              // Индекс для order_id
+              db.payments.createIndex({ "order_id": 1 }, { 
+                name: "idx_payments_order_id"
+              })
+
+              // Составной индекс для истории платежей пользователя
+              db.payments.createIndex(
+                { "user_id": 1, "timestamp": -1, "status": 1 }, 
+                { 
+                  name: "idx_payments_user_timestamp_status"
+                }
+              )
+
+              // Отдельный индекс на status (для запросов без user_id)
+              db.payments.createIndex({ "status": 1 }, { 
+                name: "idx_payments_status"
+              })
+
+              // TTL-индекс для автоматической очистки старых записей (90 дней)
+              db.payments.createIndex({ "timestamp": 1 }, { 
+                name: "idx_payments_ttl",
+                expireAfterSeconds: 7776000  // 90 дней
+              })
+
+              // Индекс для аналитических запросов по диапазонам времени
+              db.payments.createIndex({ "timestamp": -1 }, { 
+                name: "idx_payments_timestamp_desc"
+              })
