@@ -3,6 +3,8 @@ package com.example.paymentservice.service;
 import com.example.paymentservice.dto.PaymentRequestDTO;
 import com.example.paymentservice.dto.PaymentResponseDTO;
 import com.example.paymentservice.entity.Payment;
+import com.example.paymentservice.event.PaymentEvent;
+import com.example.paymentservice.kafka.PaymentKafkaProducer;
 import com.example.paymentservice.mapper.PaymentMapper;
 import com.example.paymentservice.repository.PaymentRepository;
 import lombok.RequiredArgsConstructor;
@@ -24,11 +26,10 @@ public class PaymentService {
     private final PaymentRepository paymentRepository;
     private final PaymentMapper paymentMapper;
     private final WebClient webClient;
+    private final PaymentKafkaProducer paymentKafkaProducer;
 
-    // External API URL for random number generation
     private static final String RANDOM_NUMBER_API = "https://www.random.org/integers/?num=1&min=1&max=100&col=1&base=10&format=plain&rnd=new";
 
-    // 1. Create Payment with external API call
     public PaymentResponseDTO createPayment(PaymentRequestDTO paymentRequestDTO) {
         // Determine payment status using external API
         String status = determinePaymentStatusFromExternalApi();
@@ -45,10 +46,37 @@ public class PaymentService {
         Payment savedPayment = paymentRepository.save(payment);
         log.info("Payment created with status: {}, ID: {}", status, savedPayment.getId());
 
+        // Send payment event to Kafka
+        sendPaymentEventToKafka(savedPayment);
+
         return paymentMapper.toResponseDTO(savedPayment);
     }
 
-    // 2. Get Payments by user_id or order_id or status
+    private void sendPaymentEventToKafka(Payment payment) {
+        try {
+            PaymentEvent paymentEvent = PaymentEvent.builder()
+                    .eventId(UUID.randomUUID().toString())
+                    .eventType("CREATE_PAYMENT")
+                    .paymentId(payment.getId())
+                    .orderId(payment.getOrderId())
+                    .userId(payment.getUserId())
+                    .status(payment.getStatus())
+                    .amount(payment.getPaymentAmount())
+                    .timestamp(payment.getTimestamp())
+                    .build();
+
+            log.info("Sending payment event for order: {}, status: {}",
+                    payment.getOrderId(), payment.getStatus());
+
+            paymentKafkaProducer.sendPaymentEvent(paymentEvent);
+
+        } catch (Exception e) {
+            log.error("Failed to send payment event to Kafka for order {}: {}",
+                    payment.getOrderId(), e.getMessage(), e);
+        }
+    }
+
+    // Get Payments by user_id or order_id or status
     public List<PaymentResponseDTO> getPayments(Long userId, Long orderId, String status) {
         List<Payment> payments;
 
@@ -67,7 +95,7 @@ public class PaymentService {
                 .collect(Collectors.toList());
     }
 
-    // 3. Get total sum of payments for date range for current user
+    // Get total sum of payments for date range for current user
     public BigDecimal getTotalForUser(Long userId, Instant startDate, Instant endDate) {
         List<Payment> payments = paymentRepository.findByUserIdAndTimestampBetween(userId, startDate, endDate);
         return payments.stream()
@@ -75,7 +103,7 @@ public class PaymentService {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
-    // 4. Get total sum of payments for date range for all users
+    // Get total sum of payments for date range for all users
     public BigDecimal getTotalForAllUsers(Instant startDate, Instant endDate) {
         List<Payment> payments = paymentRepository.findByTimestampBetween(startDate, endDate);
         return payments.stream()
