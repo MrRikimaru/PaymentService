@@ -50,6 +50,9 @@ dependencies {
     // For MapStruct + Lombok integration
     annotationProcessor("org.projectlombok:lombok-mapstruct-binding:0.2.0")
 
+    // Kafka
+    implementation 'org.springframework.kafka:spring-kafka'
+
     // Test
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
