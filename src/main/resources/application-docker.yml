@@ -1,0 +1,46 @@
+spring:
+  application:
+    name: payment-service
+
+  data:
+    mongodb:
+      uri: ${MONGODB_URI}
+      database: ${MONGODB_DATABASE}
+      auto-index-creation: true
+
+  liquibase:
+    enabled: ${LIQUIBASE_ENABLED}
+    change-log: ${LIQUIBASE_CHANGE_LOG}
+    url: ${LIQUIBASE_URL}
+    database-changelog-table: databasechangelog
+    database-changelog-lock-table: databasechangeloglock
+    mongodb:
+      enabled: true
+    drop-first: false
+    contexts:
+      - development
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.type.mapping: paymentEvent:com.example.paymentservice.event.PaymentEvent
+      retries: 3
+      acks: all
+
+server:
+  port: 8084
+
+logging:
+  level:
+    org.springframework: INFO
+    org.liquibase: INFO
+    org.springframework.data.mongodb.core: DEBUG
+    org.springframework.kafka: DEBUG
+    com.example.paymentservice: DEBUG
+
+external:
+  api:
+    random-number-url: ${EXTERNAL_API_URL}
