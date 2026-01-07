@@ -12,7 +12,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 
@@ -45,16 +44,16 @@ public class PaymentController {
             @PathVariable Long userId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant endDate) {
-        BigDecimal total = paymentService.getTotalForUser(userId, startDate, endDate);
-        return ResponseEntity.ok(new PaymentTotalDTO(total));
+        PaymentTotalDTO total = paymentService.getTotalForUser(userId, startDate, endDate);
+        return ResponseEntity.ok(total);
     }
 
     @GetMapping("/admin/total")
     public ResponseEntity<PaymentTotalDTO> getAllUsersTotal(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant endDate) {
-        BigDecimal total = paymentService.getTotalForAllUsers(startDate, endDate);
-        return ResponseEntity.ok(new PaymentTotalDTO(total));
+        PaymentTotalDTO total = paymentService.getTotalForAllUsers(startDate, endDate);
+        return ResponseEntity.ok(total);
     }
 
     @GetMapping("/user/{userId}")
