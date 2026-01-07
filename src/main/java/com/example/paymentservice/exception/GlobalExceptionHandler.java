@@ -1,6 +1,8 @@
 package com.example.paymentservice.exception;
 
 import jakarta.validation.ConstraintViolationException;
+import org.springframework.dao.DataAccessException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -35,5 +37,23 @@ public class GlobalExceptionHandler {
         errors.put("status", HttpStatus.BAD_REQUEST.value());
         errors.put("message", ex.getMessage());
         return new ResponseEntity<>(errors, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<Map<String, Object>> handleDataIntegrityViolationException(DataIntegrityViolationException ex) {
+        Map<String, Object> errors = new HashMap<>();
+        errors.put("timestamp", Instant.now());
+        errors.put("status", HttpStatus.CONFLICT.value());
+        errors.put("message", "Duplicate payment detected for this order and user");
+        return new ResponseEntity<>(errors, HttpStatus.CONFLICT);
+    }
+
+    @ExceptionHandler(DataAccessException.class)
+    public ResponseEntity<Map<String, Object>> handleDataAccessException(DataAccessException ex) {
+        Map<String, Object> errors = new HashMap<>();
+        errors.put("timestamp", Instant.now());
+        errors.put("status", HttpStatus.SERVICE_UNAVAILABLE.value());
+        errors.put("message", "Database error occurred");
+        return new ResponseEntity<>(errors, HttpStatus.SERVICE_UNAVAILABLE);
     }
 }

@@ -1,0 +1,50 @@
+spring:
+  application:
+    name: payment-service-test
+
+  data:
+    mongodb:
+      uri: ${TEST_MONGODB_URI}
+      database: test_payments
+      auto-index-creation: true
+
+  kafka:
+    bootstrap-servers: ${TEST_KAFKA_BOOTSTRAP_SERVERS}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.type.mapping: paymentEvent:com.example.paymentservice.event.PaymentEvent
+
+  liquibase:
+    enabled: false
+
+  web:
+    resources:
+      add-mappings: false
+
+server:
+  port: 0
+
+logging:
+  level:
+    root: WARN
+    org.springframework: WARN
+    org.apache.kafka: WARN
+    org.testcontainers: INFO
+    com.example.paymentservice: DEBUG
+    org.springframework.data.mongodb.core: WARN
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  health:
+    enabled: true
+
+external:
+  api:
+    random-number:
+      url: ${TEST_EXTERNAL_API_URL}
+      timeout: 1000

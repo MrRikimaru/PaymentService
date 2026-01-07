@@ -10,13 +10,12 @@ import java.math.BigDecimal;
 @Data
 @Builder
 @NoArgsConstructor
-@AllArgsConstructor
 public class PaymentTotalDTO {
     private BigDecimal totalAmount;
     private Long count;
 
-    public PaymentTotalDTO(BigDecimal totalAmount) {
-        this.totalAmount = totalAmount;
-        this.count = 1L;
+    public PaymentTotalDTO(BigDecimal totalAmount, Long count) {
+        this.totalAmount = totalAmount != null ? totalAmount : BigDecimal.ZERO;
+        this.count = count != null ? count : 0L;
     }
 }

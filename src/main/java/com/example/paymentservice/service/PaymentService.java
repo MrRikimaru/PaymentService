@@ -2,6 +2,7 @@ package com.example.paymentservice.service;
 
 import com.example.paymentservice.dto.PaymentRequestDTO;
 import com.example.paymentservice.dto.PaymentResponseDTO;
+import com.example.paymentservice.dto.PaymentTotalDTO;
 import com.example.paymentservice.entity.Payment;
 import com.example.paymentservice.event.PaymentEvent;
 import com.example.paymentservice.kafka.PaymentKafkaProducer;
@@ -10,7 +11,6 @@ import com.example.paymentservice.repository.PaymentRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.client.WebClient;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -25,10 +25,8 @@ public class PaymentService {
 
     private final PaymentRepository paymentRepository;
     private final PaymentMapper paymentMapper;
-    private final WebClient webClient;
+    private final RandomNumberService randomNumberService;
     private final PaymentKafkaProducer paymentKafkaProducer;
-
-    private static final String RANDOM_NUMBER_API = "https://www.random.org/integers/?num=1&min=1&max=100&col=1&base=10&format=plain&rnd=new";
 
     public PaymentResponseDTO createPayment(PaymentRequestDTO paymentRequestDTO) {
         // Determine payment status using external API
@@ -69,7 +67,6 @@ public class PaymentService {
                     payment.getOrderId(), payment.getStatus());
 
             paymentKafkaProducer.sendPaymentEvent(paymentEvent);
-
         } catch (Exception e) {
             log.error("Failed to send payment event to Kafka for order {}: {}",
                     payment.getOrderId(), e.getMessage(), e);
@@ -80,7 +77,15 @@ public class PaymentService {
     public List<PaymentResponseDTO> getPayments(Long userId, Long orderId, String status) {
         List<Payment> payments;
 
-        if (userId != null) {
+        if (userId != null && orderId != null && status != null) {
+            payments = paymentRepository.findByUserIdAndOrderIdAndStatus(userId, orderId, status);
+        } else if (userId != null && orderId != null) {
+            payments = paymentRepository.findByUserIdAndOrderId(userId, orderId);
+        } else if (userId != null && status != null) {
+            payments = paymentRepository.findByUserIdAndStatus(userId, status);
+        } else if (orderId != null && status != null) {
+            payments = paymentRepository.findByOrderIdAndStatus(orderId, status);
+        } else if (userId != null) {
             payments = paymentRepository.findByUserId(userId);
         } else if (orderId != null) {
             payments = paymentRepository.findByOrderId(orderId);
@@ -96,40 +101,35 @@ public class PaymentService {
     }
 
     // Get total sum of payments for date range for current user
-    public BigDecimal getTotalForUser(Long userId, Instant startDate, Instant endDate) {
+    public PaymentTotalDTO getTotalForUser(Long userId, Instant startDate, Instant endDate) {
         List<Payment> payments = paymentRepository.findByUserIdAndTimestampBetween(userId, startDate, endDate);
-        return payments.stream()
+        BigDecimal total = payments.stream()
                 .map(Payment::getPaymentAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
+        return new PaymentTotalDTO(total, (long) payments.size());
     }
 
+
     // Get total sum of payments for date range for all users
-    public BigDecimal getTotalForAllUsers(Instant startDate, Instant endDate) {
+    public PaymentTotalDTO getTotalForAllUsers(Instant startDate, Instant endDate) {
         List<Payment> payments = paymentRepository.findByTimestampBetween(startDate, endDate);
-        return payments.stream()
+        BigDecimal total = payments.stream()
                 .map(Payment::getPaymentAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
+        return new PaymentTotalDTO(total, (long) payments.size());
     }
 
     // Private method to determine payment status from external API
     private String determinePaymentStatusFromExternalApi() {
         try {
-            // Call external API to get random number
-            String randomNumberStr = webClient.get()
-                    .uri(RANDOM_NUMBER_API)
-                    .retrieve()
-                    .bodyToMono(String.class)
-                    .block();
+            Integer randomNumber = randomNumberService.getRandomNumber().block();
 
-            if (randomNumberStr != null) {
-                int randomNumber = Integer.parseInt(randomNumberStr.trim());
-                log.debug("Random number from API: {}", randomNumber);
-
+            if (randomNumber != null) {
                 // If number is even -> SUCCESS, otherwise -> FAILED
                 return (randomNumber % 2 == 0) ? "SUCCESS" : "FAILED";
             }
         } catch (Exception e) {
-            log.error("Error calling external API for random number: {}", e.getMessage());
+            log.error("Error determining payment status: {}", e.getMessage());
         }
 
         // Fallback: return FAILED if API call fails

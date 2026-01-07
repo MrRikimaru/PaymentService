@@ -30,14 +30,13 @@ dependencies {
     // Spring Boot Starters
     implementation("org.springframework.boot:spring-boot-starter-data-mongodb")
     implementation("org.springframework.boot:spring-boot-starter-web")
-    implementation("org.springframework.boot:spring-boot-starter-webflux") // For WebClient
+    implementation("org.springframework.boot:spring-boot-starter-webflux")
+    implementation("org.springframework.boot:spring-boot-starter-validation")
 
     // Liquibase for MongoDB
     implementation("org.liquibase:liquibase-core")
     implementation("org.liquibase.ext:liquibase-mongodb:${liquibaseVersion}")
 
-    // Validation
-    implementation("org.springframework.boot:spring-boot-starter-validation")
 
     // MapStruct
     implementation("org.mapstruct:mapstruct:${mapstructVersion}")
@@ -53,7 +52,53 @@ dependencies {
     // Kafka
     implementation 'org.springframework.kafka:spring-kafka'
 
-    // Test
-    testImplementation("org.springframework.boot:spring-boot-starter-test")
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    // Test dependencies
+    testImplementation 'org.springframework:spring-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.kafka:spring-kafka-test'
+    testImplementation 'org.springframework.kafka:spring-kafka'
+    testImplementation 'io.projectreactor:reactor-test'
+
+    // TestContainers
+    testImplementation 'org.testcontainers:testcontainers'
+    testImplementation 'org.testcontainers:junit-jupiter'
+    testImplementation 'org.testcontainers:mongodb'
+    testImplementation 'org.testcontainers:kafka'
+
+    // WireMock
+    testImplementation 'com.github.tomakehurst:wiremock-jre8-standalone:2.35.1'
+
+    // Awaitility for async testing
+    testImplementation 'org.awaitility:awaitility:4.2.0'
+
+    // Mockito
+    testImplementation 'org.mockito:mockito-core'
+    testImplementation 'org.mockito:mockito-junit-jupiter'
+
+    // JSON Path для тестов
+    testImplementation 'com.jayway.jsonpath:json-path:2.9.0'
+
+    // AssertJ
+    testImplementation 'org.assertj:assertj-core:3.24.2'
+}
+
+test {
+    useJUnitPlatform()
+    testLogging {
+        events "passed", "skipped", "failed", "standardOut", "standardError"
+        exceptionFormat "full"
+        showExceptions true
+        showCauses true
+        showStackTraces true
+    }
+    systemProperty "spring.profiles.active", "test"
+    systemProperty "testcontainers.reuse.enable", "true"
+
+    jvmArgs += ["-Dtestcontainers.ryuk.container.timeout=120000"]
+
+    systemProperty "testcontainers.reuse.enable", "true"
+    systemProperty "testcontainers.ryuk.disabled", "true"
+
+    maxHeapSize = "2G"
+    jvmArgs += ["-Xmx2G", "-Xms512M"]
 }
