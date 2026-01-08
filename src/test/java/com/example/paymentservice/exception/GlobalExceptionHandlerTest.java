@@ -1,7 +1,15 @@
 package com.example.paymentservice.exception;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -10,15 +18,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
-
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 class GlobalExceptionHandlerTest {
 
@@ -29,7 +28,8 @@ class GlobalExceptionHandlerTest {
         // Arrange
         MethodArgumentNotValidException ex = mock(MethodArgumentNotValidException.class);
         BindingResult bindingResult = mock(BindingResult.class);
-        FieldError fieldError = new FieldError("paymentRequestDTO", "amount", "must be greater than 0");
+        FieldError fieldError =
+                new FieldError("paymentRequestDTO", "amount", "must be greater than 0");
 
         when(ex.getBindingResult()).thenReturn(bindingResult);
         when(bindingResult.getFieldErrors()).thenReturn(List.of(fieldError));
@@ -53,10 +53,12 @@ class GlobalExceptionHandlerTest {
         Set<ConstraintViolation<?>> violations = new HashSet<>();
         violations.add(violation);
 
-        ConstraintViolationException ex = new ConstraintViolationException("Validation failed", violations);
+        ConstraintViolationException ex =
+                new ConstraintViolationException("Validation failed", violations);
 
         // Act
-        ResponseEntity<Map<String, Object>> response = handler.handleConstraintViolationException(ex);
+        ResponseEntity<Map<String, Object>> response =
+                handler.handleConstraintViolationException(ex);
 
         // Assert
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
@@ -66,14 +68,17 @@ class GlobalExceptionHandlerTest {
     @Test
     void handleDataIntegrityViolationException_ShouldReturnConflict() {
         // Arrange
-        DataIntegrityViolationException ex = new DataIntegrityViolationException("Duplicate payment");
+        DataIntegrityViolationException ex =
+                new DataIntegrityViolationException("Duplicate payment");
 
         // Act
-        ResponseEntity<Map<String, Object>> response = handler.handleDataIntegrityViolationException(ex);
+        ResponseEntity<Map<String, Object>> response =
+                handler.handleDataIntegrityViolationException(ex);
 
         // Assert
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
-        assertThat(response.getBody()).containsEntry("message", "Duplicate payment detected for this order and user");
+        assertThat(response.getBody())
+                .containsEntry("message", "Duplicate payment detected for this order and user");
     }
 
     @Test

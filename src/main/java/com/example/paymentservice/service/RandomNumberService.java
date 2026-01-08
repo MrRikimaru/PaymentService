@@ -19,13 +19,18 @@ public class RandomNumberService {
 
     public Mono<Integer> getRandomNumber() {
         log.debug("Calling external API: {}", randomNumberApiUrl);
-        return webClient.get()
+        return webClient
+                .get()
                 .uri(randomNumberApiUrl)
                 .retrieve()
                 .bodyToMono(String.class)
                 .map(String::trim)
                 .map(Integer::parseInt)
                 .doOnSuccess(number -> log.debug("Random number from API: {}", number))
-                .doOnError(error -> log.error("Error calling external API for random number: {}", error.getMessage()));
+                .doOnError(
+                        error ->
+                                log.error(
+                                        "Error calling external API for random number: {}",
+                                        error.getMessage()));
     }
 }

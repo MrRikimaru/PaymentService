@@ -1,5 +1,7 @@
 package com.example.paymentservice.entity;
 
+import java.math.BigDecimal;
+import java.time.Instant;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -8,17 +10,13 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 
-import java.math.BigDecimal;
-import java.time.Instant;
-
 @Document(collection = "payments")
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class Payment {
-    @Id
-    private String id;
+    @Id private String id;
 
     @Field("order_id")
     private Long orderId;
