@@ -2,6 +2,7 @@ plugins {
     id 'java'
     id 'org.springframework.boot' version '3.5.8'
     id 'io.spring.dependency-management' version '1.1.7'
+    id 'jacoco'
 }
 
 group = "com.example"
@@ -85,20 +86,19 @@ dependencies {
 test {
     useJUnitPlatform()
     testLogging {
-        events "passed", "skipped", "failed", "standardOut", "standardError"
-        exceptionFormat "full"
-        showExceptions true
-        showCauses true
-        showStackTraces true
+        events "passed", "skipped", "failed"
     }
     systemProperty "spring.profiles.active", "test"
-    systemProperty "testcontainers.reuse.enable", "true"
+    finalizedBy jacocoTestReport
+}
 
-    jvmArgs += ["-Dtestcontainers.ryuk.container.timeout=120000"]
+jacocoTestReport {
+    reports {
+        xml.required = true
+        html.required = true
+    }
+}
 
-    systemProperty "testcontainers.reuse.enable", "true"
-    systemProperty "testcontainers.ryuk.disabled", "true"
-
-    maxHeapSize = "2G"
-    jvmArgs += ["-Xmx2G", "-Xms512M"]
+bootJar {
+    archiveFileName = "payment-service.jar"
 }
