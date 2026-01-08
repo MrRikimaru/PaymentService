@@ -8,15 +8,13 @@ import com.example.paymentservice.event.PaymentEvent;
 import com.example.paymentservice.kafka.PaymentKafkaProducer;
 import com.example.paymentservice.mapper.PaymentMapper;
 import com.example.paymentservice.repository.PaymentRepository;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
-
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
 
 @Slf4j
 @Service
@@ -32,14 +30,15 @@ public class PaymentService {
         // Determine payment status using external API
         String status = determinePaymentStatusFromExternalApi();
 
-        Payment payment = Payment.builder()
-                .id(UUID.randomUUID().toString())
-                .orderId(paymentRequestDTO.getOrderId())
-                .userId(paymentRequestDTO.getUserId())
-                .status(status)
-                .timestamp(Instant.now())
-                .paymentAmount(paymentRequestDTO.getAmount())
-                .build();
+        Payment payment =
+                Payment.builder()
+                        .id(UUID.randomUUID().toString())
+                        .orderId(paymentRequestDTO.getOrderId())
+                        .userId(paymentRequestDTO.getUserId())
+                        .status(status)
+                        .timestamp(Instant.now())
+                        .paymentAmount(paymentRequestDTO.getAmount())
+                        .build();
 
         Payment savedPayment = paymentRepository.save(payment);
         log.info("Payment created with status: {}, ID: {}", status, savedPayment.getId());
@@ -52,24 +51,30 @@ public class PaymentService {
 
     private void sendPaymentEventToKafka(Payment payment) {
         try {
-            PaymentEvent paymentEvent = PaymentEvent.builder()
-                    .eventId(UUID.randomUUID().toString())
-                    .eventType("CREATE_PAYMENT")
-                    .paymentId(payment.getId())
-                    .orderId(payment.getOrderId())
-                    .userId(payment.getUserId())
-                    .status(payment.getStatus())
-                    .amount(payment.getPaymentAmount())
-                    .timestamp(payment.getTimestamp())
-                    .build();
+            PaymentEvent paymentEvent =
+                    PaymentEvent.builder()
+                            .eventId(UUID.randomUUID().toString())
+                            .eventType("CREATE_PAYMENT")
+                            .paymentId(payment.getId())
+                            .orderId(payment.getOrderId())
+                            .userId(payment.getUserId())
+                            .status(payment.getStatus())
+                            .amount(payment.getPaymentAmount())
+                            .timestamp(payment.getTimestamp())
+                            .build();
 
-            log.info("Sending payment event for order: {}, status: {}",
-                    payment.getOrderId(), payment.getStatus());
+            log.info(
+                    "Sending payment event for order: {}, status: {}",
+                    payment.getOrderId(),
+                    payment.getStatus());
 
             paymentKafkaProducer.sendPaymentEvent(paymentEvent);
         } catch (Exception e) {
-            log.error("Failed to send payment event to Kafka for order {}: {}",
-                    payment.getOrderId(), e.getMessage(), e);
+            log.error(
+                    "Failed to send payment event to Kafka for order {}: {}",
+                    payment.getOrderId(),
+                    e.getMessage(),
+                    e);
         }
     }
 
@@ -95,27 +100,27 @@ public class PaymentService {
             payments = paymentRepository.findAll();
         }
 
-        return payments.stream()
-                .map(paymentMapper::toResponseDTO)
-                .collect(Collectors.toList());
+        return payments.stream().map(paymentMapper::toResponseDTO).toList();
     }
 
     // Get total sum of payments for date range for current user
     public PaymentTotalDTO getTotalForUser(Long userId, Instant startDate, Instant endDate) {
-        List<Payment> payments = paymentRepository.findByUserIdAndTimestampBetween(userId, startDate, endDate);
-        BigDecimal total = payments.stream()
-                .map(Payment::getPaymentAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        List<Payment> payments =
+                paymentRepository.findByUserIdAndTimestampBetween(userId, startDate, endDate);
+        BigDecimal total =
+                payments.stream()
+                        .map(Payment::getPaymentAmount)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
         return new PaymentTotalDTO(total, (long) payments.size());
     }
-
 
     // Get total sum of payments for date range for all users
     public PaymentTotalDTO getTotalForAllUsers(Instant startDate, Instant endDate) {
         List<Payment> payments = paymentRepository.findByTimestampBetween(startDate, endDate);
-        BigDecimal total = payments.stream()
-                .map(Payment::getPaymentAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal total =
+                payments.stream()
+                        .map(Payment::getPaymentAmount)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
         return new PaymentTotalDTO(total, (long) payments.size());
     }
 
@@ -132,7 +137,6 @@ public class PaymentService {
             log.error("Error determining payment status: {}", e.getMessage());
         }
 
-        // Fallback: return FAILED if API call fails
         return "FAILED";
     }
 }

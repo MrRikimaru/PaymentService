@@ -1,37 +1,48 @@
-HELP.md
-.gradle
-build/
-!gradle/wrapper/gradle-wrapper.jar
-!**/src/main/**/build/
-!**/src/test/**/build/
+# CI артефакты
+/.gradle/
+/build/
+/out/
+*.class
+*.jar
+*.war
+*.ear
+*.zip
+*.tar.gz
+*.rar
 
-### STS ###
-.apt_generated
-.classpath
-.factorypath
-.project
-.settings
-.springBeans
-.sts4-cache
-bin/
-!**/src/main/**/bin/
-!**/src/test/**/bin/
-
-### IntelliJ IDEA ###
-.idea
-*.iws
+# Docker
 *.iml
 *.ipr
+*.iws
+
+# IntelliJ IDEA
+.idea/
+*.iml
 out/
-!**/src/main/**/out/
-!**/src/test/**/out/
 
-### NetBeans ###
-/nbproject/private/
-/nbbuild/
-/dist/
-/nbdist/
-/.nb-gradle/
+# Eclipse
+.settings/
+.classpath
+.project
 
-### VS Code ###
+# NetBeans
+nbproject/
+.nb-gradle/
+
+# VSCode
 .vscode/
+
+# Checkstyle cache
+checkstyle-cachefile
+checkstyle-checker.xml
+checkstyle-result.xml
+
+# Spotless
+.spotless/
+
+# Jacoco
+jacoco.exec
+*.exec
+
+# Test containers
+testcontainers.properties

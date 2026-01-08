@@ -1,6 +1,8 @@
 package com.example.paymentservice.config;
 
 import com.example.paymentservice.event.PaymentEvent;
+import java.util.HashMap;
+import java.util.Map;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.beans.factory.annotation.Value;
@@ -10,9 +12,6 @@ import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
 import org.springframework.kafka.support.serializer.JsonSerializer;
-
-import java.util.HashMap;
-import java.util.Map;
 
 @Configuration
 public class KafkaProducerConfig {
@@ -31,9 +30,9 @@ public class KafkaProducerConfig {
         configProps.put(ProducerConfig.DELIVERY_TIMEOUT_MS_CONFIG, 120000);
         configProps.put(ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG, 30000);
 
-        // Настройки для JsonSerializer
         configProps.put(JsonSerializer.ADD_TYPE_INFO_HEADERS, true);
-        configProps.put(JsonSerializer.TYPE_MAPPINGS,
+        configProps.put(
+                JsonSerializer.TYPE_MAPPINGS,
                 "paymentEvent:com.example.paymentservice.event.PaymentEvent");
 
         return new DefaultKafkaProducerFactory<>(configProps);

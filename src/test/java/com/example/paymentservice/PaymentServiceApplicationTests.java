@@ -16,9 +16,8 @@ import org.testcontainers.utility.DockerImageName;
 class PaymentServiceApplicationTests {
 
     @Container
-    static MongoDBContainer mongoDBContainer = new MongoDBContainer(
-            DockerImageName.parse("mongo:6.0"))
-            .withExposedPorts(27017);
+    static MongoDBContainer mongoDBContainer =
+            new MongoDBContainer(DockerImageName.parse("mongo:6.0")).withExposedPorts(27017);
 
     @DynamicPropertySource
     static void dynamicProperties(DynamicPropertyRegistry registry) {
@@ -26,8 +25,10 @@ class PaymentServiceApplicationTests {
         registry.add("spring.data.mongodb.database", () -> "test_payments");
         registry.add("spring.kafka.bootstrap-servers", () -> "localhost:9092");
         registry.add("spring.liquibase.enabled", () -> false);
-        registry.add("external.api.random-number.url",
-                () -> "http://localhost:8089/integers/?num=1&min=1&max=100&col=1&base=10&format=plain&rnd=new");
+        registry.add(
+                "external.api.random-number.url",
+                () ->
+                        "http://localhost:8089/integers/?num=1&min=1&max=100&col=1&base=10&format=plain&rnd=new");
     }
 
     @Test

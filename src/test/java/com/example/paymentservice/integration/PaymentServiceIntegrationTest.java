@@ -1,5 +1,11 @@
 package com.example.paymentservice.integration;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
 import com.example.paymentservice.PaymentServiceApplication;
 import com.example.paymentservice.dto.PaymentRequestDTO;
 import com.example.paymentservice.entity.Payment;
@@ -7,6 +13,11 @@ import com.example.paymentservice.repository.PaymentRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.WireMock;
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,41 +37,28 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
-import java.math.BigDecimal;
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
-import java.util.List;
-import java.util.UUID;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-
 @SpringBootTest(
         classes = PaymentServiceApplication.class,
-        webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT
-)
+        webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
 @Testcontainers
-@EmbeddedKafka(partitions = 1, brokerProperties = {"listeners=PLAINTEXT://localhost:9092", "port=9092"})
+@EmbeddedKafka(
+        partitions = 1,
+        brokerProperties = {"listeners=PLAINTEXT://localhost:9092", "port=9092"})
 @ActiveProfiles("test")
 class PaymentServiceIntegrationTest {
 
     @Container
-    static MongoDBContainer mongoDBContainer = new MongoDBContainer(
-            DockerImageName.parse("mongo:6.0"))
-            .withExposedPorts(27017);
+    static MongoDBContainer mongoDBContainer =
+            new MongoDBContainer(DockerImageName.parse("mongo:6.0")).withExposedPorts(27017);
 
     private static WireMockServer wireMockServer;
 
-    @Autowired
-    private MockMvc mockMvc;
+    @Autowired private MockMvc mockMvc;
 
-    @Autowired
-    private PaymentRepository paymentRepository;
+    @Autowired private PaymentRepository paymentRepository;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+    @Autowired private ObjectMapper objectMapper;
 
     @BeforeAll
     static void beforeAll() {
@@ -87,10 +85,14 @@ class PaymentServiceIntegrationTest {
 
     static void configureWireMock() {
         // Default stub for random number API
-        wireMockServer.stubFor(WireMock.get(WireMock.urlEqualTo("/integers/?num=1&min=1&max=100&col=1&base=10&format=plain&rnd=new"))
-                .willReturn(WireMock.aResponse()
-                        .withHeader("Content-Type", "text/plain")
-                        .withBody("42")));
+        wireMockServer.stubFor(
+                WireMock.get(
+                                WireMock.urlEqualTo(
+                                        "/integers/?num=1&min=1&max=100&col=1&base=10&format=plain&rnd=new"))
+                        .willReturn(
+                                WireMock.aResponse()
+                                        .withHeader("Content-Type", "text/plain")
+                                        .withBody("42")));
     }
 
     @DynamicPropertySource
@@ -100,15 +102,19 @@ class PaymentServiceIntegrationTest {
         registry.add("spring.data.mongodb.database", () -> "test_payments");
 
         // WireMock properties
-        registry.add("external.api.random-number.url",
-                () -> "http://localhost:8089/integers/?num=1&min=1&max=100&col=1&base=10&format=plain&rnd=new");
+        registry.add(
+                "external.api.random-number.url",
+                () ->
+                        "http://localhost:8089/integers/?num=1&min=1&max=100&col=1&base=10&format=plain&rnd=new");
 
         // Kafka properties
         registry.add("spring.kafka.bootstrap-servers", () -> "localhost:9092");
 
-        registry.add("spring.kafka.producer.key-serializer",
+        registry.add(
+                "spring.kafka.producer.key-serializer",
                 () -> "org.apache.kafka.common.serialization.StringSerializer");
-        registry.add("spring.kafka.producer.value-serializer",
+        registry.add(
+                "spring.kafka.producer.value-serializer",
                 () -> "org.springframework.kafka.support.serializer.JsonSerializer");
 
         // Liquibase
@@ -121,21 +127,28 @@ class PaymentServiceIntegrationTest {
     @Test
     void createPayment_ShouldReturnSuccess_WhenExternalApiReturnsEvenNumber() throws Exception {
         // Arrange - Mock external API response (even number = 42)
-        wireMockServer.stubFor(WireMock.get(WireMock.urlEqualTo("/integers/?num=1&min=1&max=100&col=1&base=10&format=plain&rnd=new"))
-                .willReturn(WireMock.aResponse()
-                        .withHeader("Content-Type", "text/plain")
-                        .withBody("42")));
+        wireMockServer.stubFor(
+                WireMock.get(
+                                WireMock.urlEqualTo(
+                                        "/integers/?num=1&min=1&max=100&col=1&base=10&format=plain&rnd=new"))
+                        .willReturn(
+                                WireMock.aResponse()
+                                        .withHeader("Content-Type", "text/plain")
+                                        .withBody("42")));
 
-        PaymentRequestDTO request = PaymentRequestDTO.builder()
-                .orderId(1001L)
-                .userId(501L)
-                .amount(new BigDecimal("99.99"))
-                .build();
+        PaymentRequestDTO request =
+                PaymentRequestDTO.builder()
+                        .orderId(1001L)
+                        .userId(501L)
+                        .amount(new BigDecimal("99.99"))
+                        .build();
 
         // Act
-        ResultActions result = mockMvc.perform(post("/api/payments")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)));
+        ResultActions result =
+                mockMvc.perform(
+                        post("/api/payments")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)));
 
         // Assert
         result.andExpect(status().isCreated())
@@ -153,21 +166,28 @@ class PaymentServiceIntegrationTest {
     @Test
     void createPayment_ShouldReturnFailed_WhenExternalApiReturnsOddNumber() throws Exception {
         // Arrange - Mock external API response (odd number = 41)
-        wireMockServer.stubFor(WireMock.get(WireMock.urlEqualTo("/integers/?num=1&min=1&max=100&col=1&base=10&format=plain&rnd=new"))
-                .willReturn(WireMock.aResponse()
-                        .withHeader("Content-Type", "text/plain")
-                        .withBody("41")));
+        wireMockServer.stubFor(
+                WireMock.get(
+                                WireMock.urlEqualTo(
+                                        "/integers/?num=1&min=1&max=100&col=1&base=10&format=plain&rnd=new"))
+                        .willReturn(
+                                WireMock.aResponse()
+                                        .withHeader("Content-Type", "text/plain")
+                                        .withBody("41")));
 
-        PaymentRequestDTO request = PaymentRequestDTO.builder()
-                .orderId(1002L)
-                .userId(502L)
-                .amount(new BigDecimal("50.00"))
-                .build();
+        PaymentRequestDTO request =
+                PaymentRequestDTO.builder()
+                        .orderId(1002L)
+                        .userId(502L)
+                        .amount(new BigDecimal("50.00"))
+                        .build();
 
         // Act
-        ResultActions result = mockMvc.perform(post("/api/payments")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)));
+        ResultActions result =
+                mockMvc.perform(
+                        post("/api/payments")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)));
 
         // Assert
         result.andExpect(status().isCreated())
@@ -183,21 +203,28 @@ class PaymentServiceIntegrationTest {
     @Test
     void createPayment_ShouldReturnFailed_WhenExternalApiIsUnavailable() throws Exception {
         // Arrange - Mock external API timeout
-        wireMockServer.stubFor(WireMock.get(WireMock.urlEqualTo("/integers/?num=1&min=1&max=100&col=1&base=10&format=plain&rnd=new"))
-                .willReturn(WireMock.aResponse()
-                        .withFixedDelay(5000) // Simulate timeout
-                        .withStatus(500)));
+        wireMockServer.stubFor(
+                WireMock.get(
+                                WireMock.urlEqualTo(
+                                        "/integers/?num=1&min=1&max=100&col=1&base=10&format=plain&rnd=new"))
+                        .willReturn(
+                                WireMock.aResponse()
+                                        .withFixedDelay(5000) // Simulate timeout
+                                        .withStatus(500)));
 
-        PaymentRequestDTO request = PaymentRequestDTO.builder()
-                .orderId(1003L)
-                .userId(503L)
-                .amount(new BigDecimal("75.50"))
-                .build();
+        PaymentRequestDTO request =
+                PaymentRequestDTO.builder()
+                        .orderId(1003L)
+                        .userId(503L)
+                        .amount(new BigDecimal("75.50"))
+                        .build();
 
         // Act
-        ResultActions result = mockMvc.perform(post("/api/payments")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)));
+        ResultActions result =
+                mockMvc.perform(
+                        post("/api/payments")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)));
 
         // Assert
         result.andExpect(status().isCreated())
@@ -208,32 +235,35 @@ class PaymentServiceIntegrationTest {
     @Test
     void getPayments_ShouldReturnPayments_WithFilters() throws Exception {
         // Arrange - Create test data
-        Payment payment1 = Payment.builder()
-                .id(UUID.randomUUID().toString())
-                .orderId(2001L)
-                .userId(601L)
-                .status("SUCCESS")
-                .timestamp(Instant.now())
-                .paymentAmount(new BigDecimal("100.00"))
-                .build();
+        Payment payment1 =
+                Payment.builder()
+                        .id(UUID.randomUUID().toString())
+                        .orderId(2001L)
+                        .userId(601L)
+                        .status("SUCCESS")
+                        .timestamp(Instant.now())
+                        .paymentAmount(new BigDecimal("100.00"))
+                        .build();
 
-        Payment payment2 = Payment.builder()
-                .id(UUID.randomUUID().toString())
-                .orderId(2001L)
-                .userId(601L)
-                .status("FAILED")
-                .timestamp(Instant.now())
-                .paymentAmount(new BigDecimal("50.00"))
-                .build();
+        Payment payment2 =
+                Payment.builder()
+                        .id(UUID.randomUUID().toString())
+                        .orderId(2001L)
+                        .userId(601L)
+                        .status("FAILED")
+                        .timestamp(Instant.now())
+                        .paymentAmount(new BigDecimal("50.00"))
+                        .build();
 
-        Payment payment3 = Payment.builder()
-                .id(UUID.randomUUID().toString())
-                .orderId(2002L)
-                .userId(602L)
-                .status("SUCCESS")
-                .timestamp(Instant.now())
-                .paymentAmount(new BigDecimal("200.00"))
-                .build();
+        Payment payment3 =
+                Payment.builder()
+                        .id(UUID.randomUUID().toString())
+                        .orderId(2002L)
+                        .userId(602L)
+                        .status("SUCCESS")
+                        .timestamp(Instant.now())
+                        .paymentAmount(new BigDecimal("200.00"))
+                        .build();
 
         paymentRepository.saveAll(List.of(payment1, payment2, payment3));
 
@@ -243,27 +273,22 @@ class PaymentServiceIntegrationTest {
                 .andExpect(jsonPath("$.length()").value(3));
 
         // Act & Assert - Filter by userId
-        mockMvc.perform(get("/api/payments")
-                        .param("userId", "601"))
+        mockMvc.perform(get("/api/payments").param("userId", "601"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(2));
 
         // Act & Assert - Filter by orderId
-        mockMvc.perform(get("/api/payments")
-                        .param("orderId", "2001"))
+        mockMvc.perform(get("/api/payments").param("orderId", "2001"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(2));
 
         // Act & Assert - Filter by status
-        mockMvc.perform(get("/api/payments")
-                        .param("status", "SUCCESS"))
+        mockMvc.perform(get("/api/payments").param("status", "SUCCESS"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(2));
 
         // Act & Assert - Filter by userId and status
-        mockMvc.perform(get("/api/payments")
-                        .param("userId", "601")
-                        .param("status", "SUCCESS"))
+        mockMvc.perform(get("/api/payments").param("userId", "601").param("status", "SUCCESS"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].paymentAmount").value(100.00));
@@ -276,32 +301,35 @@ class PaymentServiceIntegrationTest {
         Instant oneHourAgo = now.minus(1, ChronoUnit.HOURS).truncatedTo(ChronoUnit.MILLIS);
         Instant twoHoursAgo = now.minus(2, ChronoUnit.HOURS).truncatedTo(ChronoUnit.MILLIS);
 
-        Payment payment1 = Payment.builder()
-                .id(UUID.randomUUID().toString())
-                .orderId(3001L)
-                .userId(701L)
-                .status("SUCCESS")
-                .timestamp(twoHoursAgo) // Definitely outside range
-                .paymentAmount(new BigDecimal("100.00"))
-                .build();
+        Payment payment1 =
+                Payment.builder()
+                        .id(UUID.randomUUID().toString())
+                        .orderId(3001L)
+                        .userId(701L)
+                        .status("SUCCESS")
+                        .timestamp(twoHoursAgo) // Definitely outside range
+                        .paymentAmount(new BigDecimal("100.00"))
+                        .build();
 
-        Payment payment2 = Payment.builder()
-                .id(UUID.randomUUID().toString())
-                .orderId(3002L)
-                .userId(701L)
-                .status("SUCCESS")
-                .timestamp(oneHourAgo) // Inside range
-                .paymentAmount(new BigDecimal("200.00"))
-                .build();
+        Payment payment2 =
+                Payment.builder()
+                        .id(UUID.randomUUID().toString())
+                        .orderId(3002L)
+                        .userId(701L)
+                        .status("SUCCESS")
+                        .timestamp(oneHourAgo) // Inside range
+                        .paymentAmount(new BigDecimal("200.00"))
+                        .build();
 
-        Payment payment3 = Payment.builder()
-                .id(UUID.randomUUID().toString())
-                .orderId(3003L)
-                .userId(701L)
-                .status("SUCCESS")
-                .timestamp(now) // Inside range
-                .paymentAmount(new BigDecimal("300.00"))
-                .build();
+        Payment payment3 =
+                Payment.builder()
+                        .id(UUID.randomUUID().toString())
+                        .orderId(3003L)
+                        .userId(701L)
+                        .status("SUCCESS")
+                        .timestamp(now) // Inside range
+                        .paymentAmount(new BigDecimal("300.00"))
+                        .build();
 
         paymentRepository.saveAll(List.of(payment1, payment2, payment3));
 
@@ -313,9 +341,10 @@ class PaymentServiceIntegrationTest {
         Instant queryEnd = now;
 
         // Act & Assert
-        mockMvc.perform(get("/api/payments/user/{userId}/total", 701L)
-                        .param("startDate", queryStart.toString())
-                        .param("endDate", queryEnd.toString()))
+        mockMvc.perform(
+                        get("/api/payments/user/{userId}/total", 701L)
+                                .param("startDate", queryStart.toString())
+                                .param("endDate", queryEnd.toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalAmount").value(500.00))
                 .andExpect(jsonPath("$.count").value(2));
@@ -327,30 +356,33 @@ class PaymentServiceIntegrationTest {
         Instant startDate = Instant.now().minusSeconds(7200);
         Instant endDate = Instant.now();
 
-        Payment payment1 = Payment.builder()
-                .id(UUID.randomUUID().toString())
-                .orderId(4001L)
-                .userId(801L)
-                .status("SUCCESS")
-                .timestamp(Instant.now().minusSeconds(3600))
-                .paymentAmount(new BigDecimal("150.00"))
-                .build();
+        Payment payment1 =
+                Payment.builder()
+                        .id(UUID.randomUUID().toString())
+                        .orderId(4001L)
+                        .userId(801L)
+                        .status("SUCCESS")
+                        .timestamp(Instant.now().minusSeconds(3600))
+                        .paymentAmount(new BigDecimal("150.00"))
+                        .build();
 
-        Payment payment2 = Payment.builder()
-                .id(UUID.randomUUID().toString())
-                .orderId(4002L)
-                .userId(802L)
-                .status("SUCCESS")
-                .timestamp(Instant.now().minusSeconds(1800))
-                .paymentAmount(new BigDecimal("250.00"))
-                .build();
+        Payment payment2 =
+                Payment.builder()
+                        .id(UUID.randomUUID().toString())
+                        .orderId(4002L)
+                        .userId(802L)
+                        .status("SUCCESS")
+                        .timestamp(Instant.now().minusSeconds(1800))
+                        .paymentAmount(new BigDecimal("250.00"))
+                        .build();
 
         paymentRepository.saveAll(List.of(payment1, payment2));
 
         // Act & Assert
-        mockMvc.perform(get("/api/payments/admin/total")
-                        .param("startDate", startDate.toString())
-                        .param("endDate", endDate.toString()))
+        mockMvc.perform(
+                        get("/api/payments/admin/total")
+                                .param("startDate", startDate.toString())
+                                .param("endDate", endDate.toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalAmount").value(400.00))
                 .andExpect(jsonPath("$.count").value(2));
@@ -359,32 +391,35 @@ class PaymentServiceIntegrationTest {
     @Test
     void getPaymentsByUserId_ShouldReturnUserPayments() throws Exception {
         // Arrange
-        Payment payment1 = Payment.builder()
-                .id(UUID.randomUUID().toString())
-                .orderId(5001L)
-                .userId(901L)
-                .status("SUCCESS")
-                .timestamp(Instant.now())
-                .paymentAmount(new BigDecimal("100.00"))
-                .build();
+        Payment payment1 =
+                Payment.builder()
+                        .id(UUID.randomUUID().toString())
+                        .orderId(5001L)
+                        .userId(901L)
+                        .status("SUCCESS")
+                        .timestamp(Instant.now())
+                        .paymentAmount(new BigDecimal("100.00"))
+                        .build();
 
-        Payment payment2 = Payment.builder()
-                .id(UUID.randomUUID().toString())
-                .orderId(5002L)
-                .userId(901L)
-                .status("FAILED")
-                .timestamp(Instant.now())
-                .paymentAmount(new BigDecimal("50.00"))
-                .build();
+        Payment payment2 =
+                Payment.builder()
+                        .id(UUID.randomUUID().toString())
+                        .orderId(5002L)
+                        .userId(901L)
+                        .status("FAILED")
+                        .timestamp(Instant.now())
+                        .paymentAmount(new BigDecimal("50.00"))
+                        .build();
 
-        Payment payment3 = Payment.builder()
-                .id(UUID.randomUUID().toString())
-                .orderId(5003L)
-                .userId(902L)
-                .status("SUCCESS")
-                .timestamp(Instant.now())
-                .paymentAmount(new BigDecimal("200.00"))
-                .build();
+        Payment payment3 =
+                Payment.builder()
+                        .id(UUID.randomUUID().toString())
+                        .orderId(5003L)
+                        .userId(902L)
+                        .status("SUCCESS")
+                        .timestamp(Instant.now())
+                        .paymentAmount(new BigDecimal("200.00"))
+                        .build();
 
         paymentRepository.saveAll(List.of(payment1, payment2, payment3));
 
@@ -397,23 +432,25 @@ class PaymentServiceIntegrationTest {
     @Test
     void getPaymentsByOrderId_ShouldReturnOrderPayments() throws Exception {
         // Arrange
-        Payment payment1 = Payment.builder()
-                .id(UUID.randomUUID().toString())
-                .orderId(6001L)
-                .userId(1001L)
-                .status("SUCCESS")
-                .timestamp(Instant.now())
-                .paymentAmount(new BigDecimal("100.00"))
-                .build();
+        Payment payment1 =
+                Payment.builder()
+                        .id(UUID.randomUUID().toString())
+                        .orderId(6001L)
+                        .userId(1001L)
+                        .status("SUCCESS")
+                        .timestamp(Instant.now())
+                        .paymentAmount(new BigDecimal("100.00"))
+                        .build();
 
-        Payment payment2 = Payment.builder()
-                .id(UUID.randomUUID().toString())
-                .orderId(6001L)
-                .userId(1001L)
-                .status("FAILED")
-                .timestamp(Instant.now())
-                .paymentAmount(new BigDecimal("50.00"))
-                .build();
+        Payment payment2 =
+                Payment.builder()
+                        .id(UUID.randomUUID().toString())
+                        .orderId(6001L)
+                        .userId(1001L)
+                        .status("FAILED")
+                        .timestamp(Instant.now())
+                        .paymentAmount(new BigDecimal("50.00"))
+                        .build();
 
         paymentRepository.saveAll(List.of(payment1, payment2));
 
@@ -426,16 +463,18 @@ class PaymentServiceIntegrationTest {
     @Test
     void createPayment_ShouldReturnBadRequest_WhenInvalidInput() throws Exception {
         // Arrange - Invalid request (negative amount)
-        PaymentRequestDTO request = PaymentRequestDTO.builder()
-                .orderId(1001L)
-                .userId(501L)
-                .amount(new BigDecimal("-10.00")) // Invalid amount
-                .build();
+        PaymentRequestDTO request =
+                PaymentRequestDTO.builder()
+                        .orderId(1001L)
+                        .userId(501L)
+                        .amount(new BigDecimal("-10.00")) // Invalid amount
+                        .build();
 
         // Act & Assert
-        mockMvc.perform(post("/api/payments")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+        mockMvc.perform(
+                        post("/api/payments")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors.amount").exists());
     }
@@ -443,7 +482,8 @@ class PaymentServiceIntegrationTest {
     @Test
     void createPayment_ShouldReturnBadRequest_WhenMissingRequiredFields() throws Exception {
         // Arrange - Missing userId
-        String invalidJson = """
+        String invalidJson =
+                """
             {
                 "orderId": 1001,
                 "amount": 100.00
@@ -451,9 +491,10 @@ class PaymentServiceIntegrationTest {
             """;
 
         // Act & Assert
-        mockMvc.perform(post("/api/payments")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(invalidJson))
+        mockMvc.perform(
+                        post("/api/payments")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(invalidJson))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors.userId").exists());
     }
