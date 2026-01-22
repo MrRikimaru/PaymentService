@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: payment-service-config
+  namespace: microservice-network
+data:
+  SERVER_PORT: "8084"
+  SERVER_SERVLET_CONTEXT_PATH: "/"
+  
+  SPRING_PROFILES_ACTIVE: "docker"
+  
+  # MongoDB Configuration
+  SPRING_DATA_MONGODB_URI: "mongodb://payment-mongodb:27017/payment_db"
+  SPRING_DATA_MONGODB_DATABASE: "payment_db"
+  
+  # Kafka Configuration
+  SPRING_KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
+  SPRING_KAFKA_PRODUCER_KEY_SERIALIZER: "org.apache.kafka.common.serialization.StringSerializer"
+  SPRING_KAFKA_PRODUCER_VALUE_SERIALIZER: "org.springframework.kafka.support.serializer.JsonSerializer"
+  SPRING_KAFKA_PRODUCER_PROPERTIES_SPRING_JSON_TYPE_MAPPING: "paymentEvent:com.example.paymentservice.event.PaymentEvent"
+  SPRING_KAFKA_PRODUCER_PROPERTIES_SPRING_JSON_ADD_TYPE_HEADERS: "true"
+  SPRING_KAFKA_PRODUCER_RETRIES: "3"
+  SPRING_KAFKA_PRODUCER_ACKS: "all"
+
+  # External APIs
+  ORDER_SERVICE_URL: "http://order-service:8083"
+  
+  # Logging
+  LOGGING_LEVEL_COM_EXAMPLE_PAYMENTSERVICE: "INFO"
