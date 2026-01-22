@@ -53,6 +53,8 @@ dependencies {
     // Kafka
     implementation 'org.springframework.kafka:spring-kafka'
 
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+
     // Test dependencies
     testImplementation 'org.springframework:spring-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'

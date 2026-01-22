@@ -1,20 +1,11 @@
 spring:
-  application:
-    name: payment-service-test
-
   data:
     mongodb:
-      uri: ${TEST_MONGODB_URI}
+      uri: ${TEST_MONGODB_URI:mongodb://localhost:27017/test_payments}
       database: test_payments
-      auto-index-creation: true
 
   kafka:
-    bootstrap-servers: ${TEST_KAFKA_BOOTSTRAP_SERVERS}
-    producer:
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
-      properties:
-        spring.json.type.mapping: paymentEvent:com.example.paymentservice.event.PaymentEvent
+    bootstrap-servers: ${TEST_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
 
   liquibase:
     enabled: false
@@ -32,19 +23,9 @@ logging:
     org.springframework: WARN
     org.apache.kafka: WARN
     org.testcontainers: INFO
-    com.example.paymentservice: DEBUG
-    org.springframework.data.mongodb.core: WARN
-
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health
-  health:
-    enabled: true
 
 external:
   api:
     random-number:
-      url: ${TEST_EXTERNAL_API_URL}
+      url: ${TEST_EXTERNAL_API_URL:http://mock:8089}
       timeout: 1000

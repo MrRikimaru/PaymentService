@@ -1,0 +1,69 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payment-mongodb
+  namespace: microservice-network
+  labels:
+    app: payment-mongodb
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: payment-mongodb
+  template:
+    metadata:
+      labels:
+        app: payment-mongodb
+    spec:
+      containers:
+        - name: mongodb
+          image: mongo:7.0
+          ports:
+            - containerPort: 27017
+          env:
+            - name: MONGO_INITDB_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: payment-mongodb-secret
+                  key: mongo-initdb-database
+          volumeMounts:
+            - name: mongodb-storage
+              mountPath: /data/db
+          resources:
+            requests:
+              memory: "125Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "250m"
+          livenessProbe:
+            tcpSocket:
+              port: 27017
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            tcpSocket:
+              port: 27017
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+      volumes:
+        - name: mongodb-storage
+          persistentVolumeClaim:
+            claimName: payment-mongodb-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: payment-mongodb
+  namespace: microservice-network
+spec:
+  selector:
+    app: payment-mongodb
+  ports:
+    - port: 27017
+      targetPort: 27017
+  clusterIP: None
