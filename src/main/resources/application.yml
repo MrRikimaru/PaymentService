@@ -4,24 +4,23 @@ spring:
 
   data:
     mongodb:
-      uri: ${MONGODB_URI}
-      database: ${MONGODB_DATABASE}
+      uri: ${MONGODB_URI:mongodb://localhost:27017/payment_db}
+      database: ${MONGODB_DATABASE:payment_db}
       auto-index-creation: true
 
   liquibase:
-    enabled: ${LIQUIBASE_ENABLED}
-    change-log: ${LIQUIBASE_CHANGE_LOG}
-    url: ${LIQUIBASE_URL}
+    enabled: ${LIQUIBASE_ENABLED:true}
+    change-log: ${LIQUIBASE_CHANGE_LOG:classpath:db/changelog/db.changelog-master.yaml}
+    url: ${LIQUIBASE_URL:${spring.data.mongodb.uri}}
     database-changelog-table: databasechangelog
     database-changelog-lock-table: databasechangeloglock
     mongodb:
       enabled: true
     drop-first: false
-    contexts:
-      - development
+    contexts: development
 
   kafka:
-    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
@@ -35,19 +34,31 @@ spring:
       acks: all
 
 server:
-  port: 8084
+  port: ${SERVER_PORT:8084}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
 
 logging:
   level:
-    org.springframework: INFO
+    root: INFO
     org.liquibase: INFO
     org.springframework.data.mongodb.core: DEBUG
     org.liquibase.ext.mongodb: DEBUG
     com.example.paymentservice: DEBUG
 
-# External API configuration
 external:
   api:
     random-number:
-      url: ${EXTERNAL_API_URL}
-      timeout: 5000 # milliseconds
+      url: ${EXTERNAL_API_URL:https://www.random.org/integers/?num=1&min=1&max=100&col=1&base=10&format=plain&rnd=new}
+      timeout: ${EXTERNAL_API_TIMEOUT:5000}
+    order-service:
+      url: ${ORDER_SERVICE_URL:http://localhost:8083}
